@@ -238,10 +238,10 @@ async function S3PublishMedia(
       const productVariant = variants.find(
         (variant) => variant._id === catalogVariant.variantId
       );
-      catalogVariant.uploadedBy = productVariant.uploadedBy || null;
-      catalogVariant.ancestorId = productVariant["ancestors"][0]
-        ? productVariant["ancestors"][0]
-        : null;
+//       catalogVariant.uploadedBy = productVariant.uploadedBy || null;
+//       catalogVariant.ancestorId = productVariant["ancestors"][0]
+//         ? productVariant["ancestors"][0]
+//         : null;
 
       catalogVariant.media = productVariant.media;
     });
