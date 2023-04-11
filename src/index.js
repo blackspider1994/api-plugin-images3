@@ -128,6 +128,10 @@ function myStartup1(context) {
               message: "File is uploaded",
               data,
             });
+          }).catch(err=>{
+        console.log("err", err);
+
+            res.status(500).send(err);
           });
         }
       } catch (err) {
