@@ -45,8 +45,6 @@ export async function generateThumbs(filename, uploadName, key) {
 
 export async function S3UploadImage(fileContent, uploadName, key, fileType, uploadPath) {
   return new Promise(async function (resolve, reject) {
-    console.log("fileName,uploadName", fileContent, uploadName);
-    console.log("image api hitting");
     const currentTime = Date.now()
     if (fileType === "image") {
       for (let i = 0; i < 4; i++) {
@@ -61,10 +59,9 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
           .webp({ lossless: false, alphaQuality: 50, quality: 80 })
           .toBuffer();
 
-        console.log("resized image is ", i, " , ", resizedImage);
         const params = {
           Bucket: BUCKET_NAME,
-          Key: `${uploadPath}/${name}-${currentTime}-${uploadName}`, // File name you want to save as in S3
+          Key: `${uploadPath}/${name}-${currentTime}-${uploadName.split(".")[0]}.webp`, // File name you want to save as in S3
           Body: resizedImage,
         };
         console.log({
@@ -74,16 +71,16 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
           bucketName: BUCKET_NAME,
         });
         s3.upload(params, function (err, data) {
-          console.log("data is ", data, "iteration no. ", i);
+          console.log("data is ", data, "iteration no. ", i,err);
           if (err) {
             console.log("reaching error");
             reject(err);
           }
           resolve({
             status: true,
-            msg: `File uploaded successfully. ${data.Location}`,
+            msg: `File uploaded successfully. ${data?.Location}`,
             key,
-            url: data.Location,
+            url: data?.Location,
           });
         });
       }
