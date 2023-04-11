@@ -234,17 +234,20 @@ async function S3PublishMedia(
   const { Product } = collections;
   // let productObj=await getProductMedia(context,catalogProduct.productId);
   catalogProduct.media = product?.media;
-  catalogProduct.primaryImage = product?.media[0];
+  catalogProduct.primaryImage = product?.media?product?.media[0]:null;
   catalogProduct.variants &&
     catalogProduct.variants.map(async (catalogVariant) => {
       const productVariant = variants.find(
         (variant) => variant._id === catalogVariant.variantId
       );
+      if(productVariant.uploadedBy){
+        
       catalogVariant.uploadedBy = productVariant.uploadedBy || null;
       catalogVariant.ancestorId = productVariant["ancestors"][0]
         ? productVariant["ancestors"][0]
         : null;
 
+      }
       catalogVariant.media = productVariant.media;
     });
 }
