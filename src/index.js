@@ -75,6 +75,7 @@ function myStartup1(context) {
               console.log("upload response", uploadResponse);
               if (uploadResponse[key]) {
                 data[uploadResponse[key]].url = uploadResponse.url;
+                data[uploadResponse[key]].urlObject = uploadResponse.urlObject;
               }
             });
             uploads.push(promise);
@@ -123,7 +124,7 @@ function myStartup1(context) {
           ).then((uploadResponse) => {
             data[0].url = uploadResponse.url;
             console.log("upload response is ", uploadResponse);
-
+            data[0].urlObject=uploadResponse?.urlObject;
             res.send({
               status: true,
               message: "File is uploaded",

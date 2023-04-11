@@ -47,6 +47,13 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
   try {
     const currentTime = Date.now();
     const urlsArray = [];
+    let urlsArrayObj={
+      "image":{},
+      "large":{},
+      "medium":{},
+      "small":{},
+      "thumbnail":{},
+  };
     if (fileType === "image") {
       const resizedImages = await Promise.all(imgTransforms.map(async (transform) => {
         let { name, size, fit, format, type } = transform;
@@ -63,7 +70,7 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
       await Promise.all(resizedImages.map(async (image, index) => {
         const params = {
           Bucket: BUCKET_NAME,
-          Key: `${uploadPath}/${imgTransforms[index].name}-${currentTime}-${uploadName}`,
+          Key: `${uploadPath}/${imgTransforms[index].name}-${currentTime}-${uploadName.split(".")[0]}.webp`,
           Body: image,
         };
         const { Location } = await s3.upload(params).promise();
@@ -78,10 +85,13 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
       const { Location } = await s3.upload(params).promise();
       urlsArray.push(Location);
     }
+  urlsArrayObj = urlToDictonary(urlsArray)
     return {
       status: true,
       msg: `All files uploaded successfully.`,
       url: urlsArray,
+      urlObject:urlsArrayObj
+
     };
   } catch (err) {
     console.log(err);
@@ -90,6 +100,38 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
       msg: err.message,
     };
   }
+}
+function urlToDictonary(urlsArray){
+  let imageType="none";
+  let urlsArrayObj={};
+  urlsArray.map(item=>{
+    
+    if(item.includes("/small-")){
+      imageType="small"
+    }
+    if(item.includes("/medium-")){
+      imageType="medium"
+      
+    }
+    if(item.includes("/large-")){
+      imageType="large"
+      
+    }
+    if(item.includes("/thumbnail-")){
+      imageType="thumbnail"
+      
+    }
+    if(item.includes("/image-")){
+      imageType="image"
+      
+    }
+
+    
+    urlsArrayObj[imageType]=item;
+
+ 
+  })
+  return urlsArrayObj;
 }
 
 export async function S3UploadDocument(fileContent, uploadName, key) {
