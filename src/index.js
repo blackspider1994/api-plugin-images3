@@ -233,8 +233,8 @@ async function S3PublishMedia(
   const { app, collections, rootUrl } = context;
   const { Product } = collections;
   // let productObj=await getProductMedia(context,catalogProduct.productId);
-  catalogProduct.media = product.media;
-  catalogProduct.primaryImage = product.media[0];
+  catalogProduct.media = product?.media;
+  catalogProduct.primaryImage = product?.media[0];
   catalogProduct.variants &&
     catalogProduct.variants.map(async (catalogVariant) => {
       const productVariant = variants.find(
