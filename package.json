@@ -1,7 +1,7 @@
 {
-  "name": "@husamaz1994/api-plugin-images3",
+  "name": "@shoaibfarooq3/api-plugin-images3",
   "description": "Boilerplate Example plugin for the Reaction API",
-  "version": "1.0.3",
+  "version": "1.1.9",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -9,15 +9,15 @@
   },
   "homepage": "https://github.com/blackspider1994/reaction-variant-ownerInfo",
   "url": "https://github.com/blackspider1994/reaction-variant-ownerInfo",
-  "email": "usama.sama@gmail.com",
+  "email": "shoaibfarooq3@gmail.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/blackspider1994/reaction-variant-ownerInfo"
   },
   "author": {
-    "name": "Usama Zulfiqar",
-    "email": "usama.sama@gmail.com",
-    "url": "https://github.com/blackspider1994"
+    "name": "Shoaib Farooq",
+    "email": "shoaibfarooq3@gmail.com",
+    "url": "https://github.com/ShoaibFarooq3"
   },
   "license": "Apache-2.0",
   "bugs": {

@@ -6,10 +6,11 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import morgan from "morgan";
 import _ from "lodash";
+import gcpUpload from "./utils/gcpUpload.js";
 import { S3UploadImage, S3UploadDocument } from "./utils/s3Upload.js";
 import sharp from "sharp";
 const mySchema = importAsString("./schema.graphql");
-
+const bucketPlateForm = process.env.BUCKET_PLATFORM;
 var _context = null;
 
 const resolvers = {
@@ -39,8 +40,8 @@ function myStartup1(context) {
     app.expressApp.use(bodyParser.urlencoded({ extended: true }));
     app.expressApp.use(morgan("dev"));
     app.expressApp.post("/upload", async (req, res) => {
-      console.log("req.body", req.body);
-      console.log("req.files", req.files);
+      // console.log("req.body", req.body);
+      // console.log("req.files", req.files);
       let isMulti = req.body.isMulti;
       let uploadPath = req.body.uploadPath;
       console.log("upload path is ", uploadPath);
@@ -73,8 +74,10 @@ function myStartup1(context) {
               uploadPath
             ).then((uploadResponse) => {
               console.log("upload response", uploadResponse);
-              if (uploadResponse["key"]) {
-                data[uploadResponse["key"]].url = uploadResponse.url;
+              if (uploadResponse[key]) {
+                data[uploadResponse[key]].url = uploadResponse.url;
+                data[uploadResponse[key]].availableSizes =
+                  uploadResponse.urlObject;
               }
             });
             uploads.push(promise);
@@ -86,7 +89,7 @@ function myStartup1(context) {
           });
           Promise.all(uploads)
             .then(async function () {
-              console.log(data);
+              console.log("data in promises", data);
               res.send({
                 status: true,
                 message: "Files are uploaded",
@@ -99,36 +102,43 @@ function myStartup1(context) {
             });
           //return response
         } else if (isMulti == "false") {
-          let data = [];
-
-          //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
-          let photo = req.files.photos;
-          let getType = photo.mimetype.split("/");
-          console.log("get type is ", getType);
-          let fileType = getType[0];
-          console.log("file type is ", fileType);
-          console.log("photo is ", photo);
-
-          data.push({
-            name: photo.name,
-            mimetype: photo.mimetype,
-            size: photo.size,
-          });
-          S3UploadImage(
-            req.files.photos.data,
-            req.files.photos.name,
-            0,
-            fileType,
-            uploadPath
-          ).then((uploadResponse) => {
-            data[0].url = uploadResponse.url;
-
-            res.send({
-              status: true,
-              message: "File is uploaded",
-              data,
+          if (bucketPlateForm === "GCP") {
+            // console.log("GCP");
+            let imageResponse = await gcpUpload(req, res);
+            // console.log("imageResponse", imageResponse);
+            res.status(200).json(imageResponse);
+          } else {
+            console.log("S3");
+            let data = [];
+            //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
+            let photo = req.files.photos;
+            let getType = photo.mimetype.split("/");
+            console.log("get type is ", getType);
+            let fileType = getType[0];
+            console.log("file type is ", fileType);
+            console.log("photo is ", photo);
+            data.push({
+              name: photo.name,
+              mimetype: photo.mimetype,
+              size: photo.size,
             });
-          });
+            S3UploadImage(
+              req.files.photos.data,
+              req.files.photos.name,
+              0,
+              fileType,
+              uploadPath
+            ).then((uploadResponse) => {
+              data[0].url = uploadResponse.url;
+              console.log("upload response is ", uploadResponse);
+              data[0].availableSizes = uploadResponse?.urlObject;
+              res.send({
+                status: true,
+                message: "File is uploaded",
+                data,
+              });
+            });
+          }
         }
       } catch (err) {
         console.log("err", err);
@@ -231,18 +241,19 @@ async function S3PublishMedia(
   const { app, collections, rootUrl } = context;
   const { Product } = collections;
   // let productObj=await getProductMedia(context,catalogProduct.productId);
-  catalogProduct.media = product.media;
-  catalogProduct.primaryImage = product.media[0];
+  catalogProduct.media = product?.media;
+  catalogProduct.primaryImage = product?.media ? product?.media[0] : null;
   catalogProduct.variants &&
     catalogProduct.variants.map(async (catalogVariant) => {
       const productVariant = variants.find(
         (variant) => variant._id === catalogVariant.variantId
       );
-      catalogVariant.uploadedBy = productVariant.uploadedBy || null;
-      catalogVariant.ancestorId = productVariant["ancestors"][0]
-        ? productVariant["ancestors"][0]
-        : null;
-
+      if (productVariant.uploadedBy) {
+        catalogVariant.uploadedBy = productVariant.uploadedBy || null;
+        catalogVariant.ancestorId = productVariant["ancestors"][0]
+          ? productVariant["ancestors"][0]
+          : null;
+      }
       catalogVariant.media = productVariant.media;
     });
 }

@@ -44,15 +44,20 @@ export async function generateThumbs(filename, uploadName, key) {
 }
 
 export async function S3UploadImage(fileContent, uploadName, key, fileType, uploadPath) {
-  return new Promise(async function (resolve, reject) {
-    console.log("fileName,uploadName", fileContent, uploadName);
-    console.log("image api hitting");
-    const currentTime = Date.now()
+  try {
+    const currentTime = Date.now();
+    const urlsArray = [];
+    let urlsArrayObj={
+      "image":{},
+      "large":{},
+      "medium":{},
+      "small":{},
+      "thumbnail":{},
+  };
     if (fileType === "image") {
-      for (let i = 0; i < 4; i++) {
-        let name = imgTransforms[i].name;
-        let { size, fit, format, type } = imgTransforms[i].transform;
-        const resizedImage = await sharp(fileContent)
+      const resizedImages = await Promise.all(imgTransforms.map(async (transform) => {
+        let { name, size, fit, format, type } = transform;
+        return await sharp(fileContent)
           .resize({
             height: size,
             fit: sharp.fit[fit],
@@ -60,60 +65,73 @@ export async function S3UploadImage(fileContent, uploadName, key, fileType, uplo
           })
           .webp({ lossless: false, alphaQuality: 50, quality: 80 })
           .toBuffer();
+      }));
 
-        console.log("resized image is ", i, " , ", resizedImage);
+      await Promise.all(resizedImages.map(async (image, index) => {
         const params = {
           Bucket: BUCKET_NAME,
-          Key: `${uploadPath}/${name}-${currentTime}-${uploadName}`, // File name you want to save as in S3
-          Body: resizedImage,
+          Key: `${uploadPath}/${imgTransforms[index].name}-${currentTime}-${uploadName.split(".")[0]}.webp`,
+          Body: image,
         };
-        console.log({
-          accessKeyId: process.env.ID,
-          secretAccessKey: process.env.SECRET,
-          region: process.env.REGION,
-          bucketName: BUCKET_NAME,
-        });
-        s3.upload(params, function (err, data) {
-          console.log("data is ", data, "iteration no. ", i);
-          if (err) {
-            console.log("reaching error");
-            reject(err);
-          }
-          resolve({
-            status: true,
-            msg: `File uploaded successfully. ${data.Location}`,
-            key,
-            url: data.Location,
-          });
-        });
-      }
+        const { Location } = await s3.upload(params).promise();
+        urlsArray.push(Location);
+      }));
     } else {
       const params = {
         Bucket: BUCKET_NAME,
-        Key: `${uploadPath}/${uploadName}`, // File name you want to save as in S3
+        Key: `${uploadPath}/${uploadName}`,
         Body: fileContent,
       };
-      console.log({
-        accessKeyId: process.env.ID,
-        secretAccessKey: process.env.SECRET,
-        region: process.env.REGION,
-        bucketName: BUCKET_NAME,
-      });
-      s3.upload(params, function (err, data) {
-        console.log("data is ", data);
-        if (err) {
-          console.log("reaching error");
-          reject(err);
-        }
-        resolve({
-          status: true,
-          msg: `File uploaded successfully. ${data.Location}`,
-          key,
-          url: data.Location,
-        });
-      });
+      const { Location } = await s3.upload(params).promise();
+      urlsArray.push(Location);
     }
-  });
+  urlsArrayObj = urlToDictonary(urlsArray)
+    return {
+      status: true,
+      msg: `All files uploaded successfully.`,
+      url: urlsArray,
+      urlObject:urlsArrayObj
+
+    };
+  } catch (err) {
+    console.log(err);
+    return {
+      status: false,
+      msg: err.message,
+    };
+  }
+}
+function urlToDictonary(urlsArray){
+  let imageType="none";
+  let urlsArrayObj={};
+  urlsArray.map(item=>{
+    
+    if(item.includes("/small-")){
+      imageType="small"
+    }
+    if(item.includes("/medium-")){
+      imageType="medium"
+      
+    }
+    if(item.includes("/large-")){
+      imageType="large"
+      
+    }
+    if(item.includes("/thumbnail-")){
+      imageType="thumbnail"
+      
+    }
+    if(item.includes("/image-")){
+      imageType="image"
+      
+    }
+
+    
+    urlsArrayObj[imageType]=item;
+
+ 
+  })
+  return urlsArrayObj;
 }
 
 export async function S3UploadDocument(fileContent, uploadName, key) {
